@@ -100,7 +100,7 @@ onMounted(fetchUserCount)
             </div>
             <div>
               <p class="text-light-green-darken-3 font-weight-bold text-h7">
-                All Rights Reserved 2024
+                All Rights Reserved 2026
               </p>
             </div>
           </v-list>
