@@ -72,34 +72,17 @@ onMounted(fetchUserCount)
 
             <!-- Developer Photos -->
             <v-row justify="center" class="mt-4 pa-3">
-              <!-- Developer 1 -->
+              
+
+              <!-- Developer 2 -->
               <v-col cols="12" sm="4" md="4" lg="3" class="text-center">
                 <v-avatar size="100" class="mx-auto" color="black">
                   <v-img src="/images/Buque.jpg" alt="Cres Steven P. Buque" class="rounded" />
                 </v-avatar>
                 <p class="text-light-green-darken-3 font-weight-bold mt-2">Cres Steven P. Buque</p>
-                <p class="text-light-green-darken-3 text-caption">
-                  System Analyst & Frontend Developer
-                </p>
+                <p class="text-light-green-darken-3 text-caption"> System Analyst & Frontend Developer</p>
               </v-col>
 
-              <!-- Developer 2 -->
-              <v-col cols="12" sm="4" md="4" lg="3" class="text-center">
-                <v-avatar size="100" class="mx-auto" color="black">
-                  <v-img src="/images/" alt="" class="rounded" />
-                </v-avatar>
-                <p class="text-light-green-darken-3 font-weight-bold mt-2"></p>
-                <p class="text-light-green-darken-3 text-caption"></p>
-              </v-col>
-
-              <!-- Developer 3 -->
-              <v-col cols="12" sm="4" md="4" lg="3" class="text-center">
-                <v-avatar size="100" class="mx-auto" color="black">
-                  <v-img src="/images/" alt="" class="rounded" />
-                </v-avatar>
-                <p class="text-light-green-darken-3 font-weight-bold mt-2"></p>
-                <p class="text-light-green-darken-3 text-caption"></p>
-              </v-col>
             </v-row>
           </v-list>
         </v-card>
