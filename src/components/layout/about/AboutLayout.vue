@@ -52,7 +52,7 @@ onMounted(fetchUserCount)
           <v-list class="text-center pa-5">
             <!-- Section Title -->
             <div>
-              <p class="text-light-green-darken-3 font-weight-bold text-h5">About the Developers</p>
+              <p class="text-light-green-darken-3 font-weight-bold text-h5">About the Developer</p>
             </div>
 
             <!-- Description -->
@@ -61,11 +61,10 @@ onMounted(fetchUserCount)
                 This innovative solution is the collaborative effort of a dedicated group of Caraga
                 State University students. The development team includes
                 <b
-                  >Cres Steven P. Buque, who served as the System Analyst and Frontend Developer; Patricia Asis,
-                   a skilled Frontend Developer; and Dewberry Claire Dormiendo, the project's
-                  talented Backend Developer.</b
+                  >Cres Steven P. Buque, who served as the System Analyst, Frontend Developer,
+                   and the Backend Developer.</b
                 >
-                Their combined expertise and teamwork have brought this vision to life, aiming to
+                Combined expertise and teamwork have brought this vision to life, aiming to
                 improve the university experience by addressing a common issue with a practical and
                 user-friendly application.
               </p>
@@ -87,19 +86,19 @@ onMounted(fetchUserCount)
               <!-- Developer 2 -->
               <v-col cols="12" sm="4" md="4" lg="3" class="text-center">
                 <v-avatar size="100" class="mx-auto" color="black">
-                  <v-img src="/images/Patricia.jpg" alt="Patricia Asis" class="rounded" />
+                  <v-img src="/images/" alt="" class="rounded" />
                 </v-avatar>
-                <p class="text-light-green-darken-3 font-weight-bold mt-2">Patricia Asis</p>
-                <p class="text-light-green-darken-3 text-caption">Frontend Developer</p>
+                <p class="text-light-green-darken-3 font-weight-bold mt-2"></p>
+                <p class="text-light-green-darken-3 text-caption"></p>
               </v-col>
 
               <!-- Developer 3 -->
               <v-col cols="12" sm="4" md="4" lg="3" class="text-center">
                 <v-avatar size="100" class="mx-auto" color="black">
-                  <v-img src="/images/Dewberry.jpg" alt="Dewberry Claire Dormiendo" class="rounded" />
+                  <v-img src="/images/" alt="" class="rounded" />
                 </v-avatar>
-                <p class="text-light-green-darken-3 font-weight-bold mt-2">Dewberry Claire Dormiendo</p>
-                <p class="text-light-green-darken-3 text-caption">Backend Developer</p>
+                <p class="text-light-green-darken-3 font-weight-bold mt-2"></p>
+                <p class="text-light-green-darken-3 text-caption"></p>
               </v-col>
             </v-row>
           </v-list>

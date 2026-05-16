@@ -19,7 +19,7 @@
               </div>
               <div class="flex items-center justify-center gap-3">
                 <div class="w-12 h-px bg-white/40"></div>
-                <span class="text-xs text-white/80">© 2025 All Rights Reserved</span>
+                <span class="text-xs text-white/80">© 2026 All Rights Reserved</span>
                 <div class="w-12 h-px bg-white/40"></div>
               </div>
             </div>
