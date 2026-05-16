@@ -275,7 +275,7 @@ window.addEventListener('profile-updated', fetchPostsWithUsers)
           <div class="post-image-container">
             <v-img
               v-if="post.image"
-              :src="`https://upexlmliwpqtfkbwskfh.supabase.co/storage/v1/object/public/items/${post.image}`"
+              :src="`https://tfjzrhmfliimxgnrevyp.supabase.co/storage/v1/object/public/items/${post.image}`"
               :alt="post.item_name || 'Post Image'"
               contain
               class="post-image"
