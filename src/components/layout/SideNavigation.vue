@@ -7,7 +7,7 @@ import SideNews from './SideNews.vue'
 
 
 //profile url in supabase
-const profileUrl = 'https://ndmbunubneumkuadlylz.supabase.co/storage/v1/object/public/images/'
+const profileUrl = 'https://tfjzrhmfliimxgnrevyp.supabase.co/storage/v1/object/public/images/'
 const unreadMessageCount = ref(0)
 const currentUserId = ref(null)
 let realtimeChannel = null

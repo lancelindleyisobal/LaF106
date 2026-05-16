@@ -16,7 +16,7 @@ const showChatModal = ref(false)
 const selectedChatPost = ref(null)
 
 // URL of the image
-const profileUrl = 'https://upexlmliwpqtfkbwskfh.supabase.co//storage/v1/object/public/images/'
+const profileUrl = 'https://tfjzrhmfliimxgnrevyp.supabase.co/storage/v1/object/public/images/'
 
 // Fetch current user ID
 const fetchUserId = async () => {

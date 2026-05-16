@@ -15,7 +15,7 @@ const conversationToDelete = ref(null)
 const deleting = ref(false)
 let realtimeChannel = null
 
-const profileUrl = 'https://ndmbunubneumkuadlylz.supabase.co/storage/v1/object/public/images/'
+const profileUrl = 'https://tfjzrhmfliimxgnrevyp.supabase.co/storage/v1/object/public/images/'
 
 // Fetch current user
 const fetchCurrentUser = async () => {

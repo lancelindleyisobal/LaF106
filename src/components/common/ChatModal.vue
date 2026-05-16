@@ -14,7 +14,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 // URL of the image
-const profileUrl = 'https://ndmbunubneumkuadlylz.supabase.co/storage/v1/object/public/images/'
+const profileUrl = 'https://tfjzrhmfliimxgnrevyp.supabase.co/storage/v1/object/public/images/'
 
 const message = ref('')
 const messages = ref([])

@@ -35,7 +35,7 @@ const posts = ref([]) // Array to store posts
 const full_name = ref('')
 const avatar_url = ref('')
 
-const profileUrl = 'https://ndmbunubneumkuadlylz.supabase.co/storage/v1/object/public/images/'
+const profileUrl = 'https://tfjzrhmfliimxgnrevyp.supabase.co/storage/v1/object/public/images/'
 
 // Reset form fields
 const resetForm = () => {

@@ -140,7 +140,7 @@ const fetchUserDetails = async () => {
     full_name.value = user.user_metadata?.full_name || 'Cres Steven Buque'
     
     // This is the prefix your teammate used in the GitHub screenshot
-    const profileUrlPrefix = 'https://upexlmliwpqtfkbwskfh.supabase.co//storage/v1/object/public/images/'
+    const profileUrlPrefix = 'https://tfjzrhmfliimxgnrevyp.supabase.co/storage/v1/object/public/images/'
     
     // Get the raw value from metadata
     const rawAvatar = user.user_metadata?.avatar_url || user.user_metadata?.profile_pic
