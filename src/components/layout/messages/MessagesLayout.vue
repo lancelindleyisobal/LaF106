@@ -54,50 +54,174 @@ const fetchConversations = async () => {
   
   loading.value = true
   
-  // Use the function that joins users and posts data
-  const { data, error } = await supabase
-    .rpc('get_messages_with_info')
+  try {
+    // First, try using the RPC function if it exists
+    const { data: rpcData, error: rpcError } = await supabase
+      .rpc('get_messages_with_info')
+    
+    if (!rpcError && rpcData) {
+      // Process RPC data
+      const convMap = new Map()
+      
+      for (const msg of rpcData || []) {
+        const isSender = msg.sender_id === currentUserId.value
+        const partnerId = isSender ? msg.receiver_id : msg.sender_id
+        const partnerFirstname = isSender ? msg.receiver_firstname : msg.sender_firstname
+        const partnerLastname = isSender ? msg.receiver_lastname : msg.sender_lastname
+        const partnerProfilePic = isSender ? msg.receiver_profile_pic : msg.sender_profile_pic
+        
+        const key = `${partnerId}-${msg.post_id}`
+        
+        if (!convMap.has(key)) {
+          let partnerName = 'Unknown User'
+          if (partnerFirstname || partnerLastname) {
+            partnerName = `${partnerFirstname || ''} ${partnerLastname || ''}`.trim()
+          }
+          
+          convMap.set(key, {
+            partnerId,
+            postId: msg.post_id,
+            partnerName,
+            partnerAvatar: partnerProfilePic,
+            postTitle: msg.item_name || 'Unknown Item',
+            lastMessage: msg.message,
+            lastMessageTime: msg.created_at,
+            unreadCount: 0
+          })
+        }
+        
+        if (msg.receiver_id === currentUserId.value && !msg.is_read) {
+          const conv = convMap.get(key)
+          if (conv) conv.unreadCount++
+        }
+      }
+      
+      conversations.value = Array.from(convMap.values())
+      loading.value = false
+      return
+    }
+  } catch (err) {
+    console.warn('RPC function not available, falling back to direct queries:', err)
+  }
   
+  // Fallback: Direct query approach
+  const { data, error } = await supabase
+    .from('messages')
+    .select(`
+      id,
+      sender_id,
+      receiver_id,
+      post_id,
+      message,
+      is_read,
+      created_at
+    `)
+    .or(`sender_id.eq.${currentUserId.value},receiver_id.eq.${currentUserId.value}`)
+    .order('created_at', { ascending: false })
+
   if (error) {
     console.error('Error fetching conversations:', error)
     loading.value = false
     return
   }
 
-  // Group messages by conversation partner and post
   const convMap = new Map()
+  const senderIds = new Set()
+  const receiverIds = new Set()
+  const postIds = new Set()
   
-  // Process messages
+  // Collect all IDs
   for (const msg of data || []) {
-    // Determine if current user is sender or receiver
-    const isSender = msg.sender_id === currentUserId.value
-    const partnerId = isSender ? msg.receiver_id : msg.sender_id
-    const partnerFirstname = isSender ? msg.receiver_firstname : msg.sender_firstname
-    const partnerLastname = isSender ? msg.receiver_lastname : msg.sender_lastname
-    const partnerProfilePic = isSender ? msg.receiver_profile_pic : msg.sender_profile_pic
+    senderIds.add(msg.sender_id)
+    receiverIds.add(msg.receiver_id)
+    postIds.add(msg.post_id)
+  }
+  
+  // Get user data from auth (try users table first, fallback to auth.users via view)
+  const userMap = new Map()
+  const allUserIds = new Set([...senderIds, ...receiverIds])
+  
+  if (allUserIds.size > 0) {
+    // Try users table first
+    const { data: usersData } = await supabase
+      .from('users')
+      .select('id, firstname, lastname, profile_pic')
+      .in('id', Array.from(allUserIds))
     
+    if (usersData && usersData.length > 0) {
+      for (const user of usersData) {
+        userMap.set(user.id, user)
+      }
+    }
+    
+    // Try user_profiles_view for missing users
+    const missingIds = Array.from(allUserIds).filter(id => !userMap.has(id))
+    if (missingIds.length > 0) {
+      const { data: viewData } = await supabase
+        .from('user_profiles_view')
+        .select('user_id, firstname, lastname, profile_pic')
+        .in('user_id', missingIds)
+      
+      if (viewData) {
+        for (const user of viewData) {
+          userMap.set(user.user_id, {
+            id: user.user_id,
+            firstname: user.firstname,
+            lastname: user.lastname,
+            profile_pic: user.profile_pic
+          })
+        }
+      }
+    }
+  }
+  
+  // Get post data
+  const postsMap = new Map()
+  if (postIds.size > 0) {
+    const { data: postsData } = await supabase
+      .from('posts')
+      .select('id, item_name')
+      .in('id', Array.from(postIds))
+    
+    if (postsData) {
+      for (const post of postsData) {
+        postsMap.set(post.id, post)
+      }
+    }
+  }
+  
+  // Build conversations
+  for (const msg of data || []) {
+    const partnerId = msg.sender_id === currentUserId.value ? msg.receiver_id : msg.sender_id
     const key = `${partnerId}-${msg.post_id}`
     
     if (!convMap.has(key)) {
-      // Build partner name
+      const partnerInfo = userMap.get(partnerId)
+      const postInfo = postsMap.get(msg.post_id)
+      
       let partnerName = 'Unknown User'
-      if (partnerFirstname || partnerLastname) {
-        partnerName = `${partnerFirstname || ''} ${partnerLastname || ''}`.trim()
+      if (partnerInfo) {
+        if (partnerInfo.firstname && partnerInfo.lastname) {
+          partnerName = `${partnerInfo.firstname} ${partnerInfo.lastname}`.trim()
+        } else if (partnerInfo.firstname) {
+          partnerName = partnerInfo.firstname
+        } else if (partnerInfo.lastname) {
+          partnerName = partnerInfo.lastname
+        }
       }
       
       convMap.set(key, {
         partnerId,
         postId: msg.post_id,
         partnerName,
-        partnerAvatar: partnerProfilePic,
-        postTitle: msg.item_name || 'Unknown Item',
+        partnerAvatar: partnerInfo?.profile_pic,
+        postTitle: postInfo?.item_name || 'Unknown Item',
         lastMessage: msg.message,
         lastMessageTime: msg.created_at,
         unreadCount: 0
       })
     }
     
-    // Count unread messages
     if (msg.receiver_id === currentUserId.value && !msg.is_read) {
       const conv = convMap.get(key)
       if (conv) conv.unreadCount++
