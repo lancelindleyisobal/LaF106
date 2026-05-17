@@ -22,6 +22,29 @@ const fetchCurrentUser = async () => {
   const { data: { user } } = await supabase.auth.getUser()
   if (user) {
     currentUserId.value = user.id
+    // Sync current user's data to users table
+    await syncUserToDatabase(user)
+  }
+}
+
+// Sync user data to users table
+const syncUserToDatabase = async (authUser) => {
+  if (!authUser) return
+  
+  const metadata = authUser.user_metadata || {}
+  const { error } = await supabase
+    .from('users')
+    .upsert({
+      id: authUser.id,
+      firstname: metadata.firstname || 'User',
+      lastname: metadata.lastname || '',
+      email: authUser.email,
+      facebook_link: metadata.facebook_link || '',
+      profile_pic: metadata.profile_pic
+    }, { onConflict: 'id' })
+  
+  if (error) {
+    console.error('Error syncing user to database:', error)
   }
 }
 
@@ -67,26 +90,47 @@ const fetchConversations = async () => {
   // Fetch all partner user info in one query
   const userMap = new Map()
   if (partnerIds.size > 0) {
+    console.log('Fetching data for partner IDs:', Array.from(partnerIds))
     const { data: usersData, error: usersError } = await supabase
       .from('users')
       .select('id, firstname, lastname, profile_pic')
       .in('id', Array.from(partnerIds))
     
     if (usersError) {
-      console.error('Error fetching users:', usersError)
-      // Create placeholder users for failed queries
-      for (const id of partnerIds) {
-        userMap.set(id, { id, firstname: 'User', lastname: '' })
-      }
+      console.error('Error fetching users from users table:', usersError)
     } else if (usersData) {
+      console.log('Fetched users data:', usersData)
       for (const user of usersData) {
         userMap.set(user.id, user)
       }
-      // Add any missing partner IDs with placeholder data
-      for (const id of partnerIds) {
-        if (!userMap.has(id)) {
-          userMap.set(id, { id, firstname: 'User', lastname: '' })
+    } else {
+      console.warn('No users data returned')
+    }
+    
+    // For missing users, try to get from auth user metadata in messages
+    const missingIds = Array.from(partnerIds).filter(id => !userMap.has(id))
+    if (missingIds.length > 0) {
+      console.warn('Missing users in users table:', missingIds)
+      // Get message from the missing users to extract their data if available
+      for (const misserId of missingIds) {
+        const partnerMessage = data.find(msg => msg.sender_id === misserId || msg.receiver_id === misserId)
+        if (partnerMessage) {
+          // Try to create a basic entry - in production, you'd want to get this from auth metadata
+          userMap.set(misserId, {
+            id: misserId,
+            firstname: 'User',
+            lastname: '',
+            profile_pic: null
+          })
         }
+      }
+    }
+    
+    // Final fallback: add any still-missing users as placeholder
+    for (const id of partnerIds) {
+      if (!userMap.has(id)) {
+        console.warn('Using placeholder for user:', id)
+        userMap.set(id, { id, firstname: 'User', lastname: '' })
       }
     }
   }
@@ -101,19 +145,21 @@ const fetchConversations = async () => {
     
     if (postsError) {
       console.error('Error fetching posts:', postsError)
-      // Create placeholder posts for failed queries
-      for (const id of postIds) {
-        postsMap.set(id, { post_id: id, item_name: 'Unknown Item' })
-      }
+      console.log('Post IDs being queried:', Array.from(postIds))
     } else if (postsData) {
+      console.log('Fetched posts data:', postsData)
       for (const post of postsData) {
         postsMap.set(post.post_id, post)
       }
-      // Add any missing post IDs with placeholder data
-      for (const id of postIds) {
-        if (!postsMap.has(id)) {
-          postsMap.set(id, { post_id: id, item_name: 'Unknown Item' })
-        }
+    } else {
+      console.warn('No posts data returned')
+    }
+    
+    // Add any missing post IDs with placeholder data
+    for (const id of postIds) {
+      if (!postsMap.has(id)) {
+        console.warn('Missing post data for post_id:', id)
+        postsMap.set(id, { post_id: id, item_name: 'Unknown Item' })
       }
     }
   }
