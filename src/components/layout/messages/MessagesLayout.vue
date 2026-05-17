@@ -67,14 +67,26 @@ const fetchConversations = async () => {
   // Fetch all partner user info in one query
   const userMap = new Map()
   if (partnerIds.size > 0) {
-    const { data: usersData } = await supabase
+    const { data: usersData, error: usersError } = await supabase
       .from('users')
-      .select('id, firstname, lastname, full_name, profile_pic, avatar_url')
+      .select('id, firstname, lastname, profile_pic')
       .in('id', Array.from(partnerIds))
     
-    if (usersData) {
+    if (usersError) {
+      console.error('Error fetching users:', usersError)
+      // Create placeholder users for failed queries
+      for (const id of partnerIds) {
+        userMap.set(id, { id, firstname: 'User', lastname: '' })
+      }
+    } else if (usersData) {
       for (const user of usersData) {
         userMap.set(user.id, user)
+      }
+      // Add any missing partner IDs with placeholder data
+      for (const id of partnerIds) {
+        if (!userMap.has(id)) {
+          userMap.set(id, { id, firstname: 'User', lastname: '' })
+        }
       }
     }
   }
@@ -82,14 +94,26 @@ const fetchConversations = async () => {
   // Fetch all posts info in one query
   const postsMap = new Map()
   if (postIds.size > 0) {
-    const { data: postsData } = await supabase
+    const { data: postsData, error: postsError } = await supabase
       .from('posts')
       .select('post_id, item_name')
       .in('post_id', Array.from(postIds))
     
-    if (postsData) {
+    if (postsError) {
+      console.error('Error fetching posts:', postsError)
+      // Create placeholder posts for failed queries
+      for (const id of postIds) {
+        postsMap.set(id, { post_id: id, item_name: 'Unknown Item' })
+      }
+    } else if (postsData) {
       for (const post of postsData) {
         postsMap.set(post.post_id, post)
+      }
+      // Add any missing post IDs with placeholder data
+      for (const id of postIds) {
+        if (!postsMap.has(id)) {
+          postsMap.set(id, { post_id: id, item_name: 'Unknown Item' })
+        }
       }
     }
   }
@@ -107,10 +131,18 @@ const fetchConversations = async () => {
       const postInfo = postsMap.get(msg.post_id)
       
       // Get partner's name and avatar
-      const partnerName = partnerInfo?.firstname && partnerInfo?.lastname
-        ? `${partnerInfo.firstname} ${partnerInfo.lastname}`
-        : partnerInfo?.full_name || 'Unknown User'
-      const partnerAvatar = partnerInfo?.profile_pic || partnerInfo?.avatar_url
+      let partnerName = 'Unknown User'
+      if (partnerInfo) {
+        if (partnerInfo.firstname && partnerInfo.lastname) {
+          partnerName = `${partnerInfo.firstname} ${partnerInfo.lastname}`.trim()
+        } else if (partnerInfo.firstname) {
+          partnerName = partnerInfo.firstname
+        } else if (partnerInfo.lastname) {
+          partnerName = partnerInfo.lastname
+        }
+      }
+      
+      const partnerAvatar = partnerInfo?.profile_pic
       
       convMap.set(key, {
         partnerId,

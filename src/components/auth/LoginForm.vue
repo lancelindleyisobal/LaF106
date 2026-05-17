@@ -44,6 +44,27 @@ const onSubmit = async () => {
     console.log(data)
     formAction.value.formSuccessMessage = 'Successfully Logged Account'
 
+    // Sync user data to users table
+    if (data.user) {
+      const { firstname, lastname, facebook_link, profile_pic } = data.user.user_metadata || {}
+      
+      const { error: syncError } = await supabase
+        .from('users')
+        .upsert({
+          id: data.user.id,
+          firstname: firstname || 'User',
+          lastname: lastname || '',
+          email: data.user.email,
+          facebook_link: facebook_link || '',
+          profile_pic: profile_pic || 'https://tfjzrhmfliimxgnrevyp.supabase.co/storage/v1/object/public/profile/public/profile-default.png'
+        }, { onConflict: 'id' })
+      
+      if (syncError) {
+        console.error('Error syncing user profile:', syncError)
+        // Don't fail the login just because sync failed
+      }
+    }
+
     // Update the auth store
     authStore.login(data.user, data.session.access_token)
 

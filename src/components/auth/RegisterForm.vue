@@ -58,6 +58,26 @@ const onSubmit = async () => {
     formAction.value.formStatus = error.status
   } else if (data) {
     console.log(data)
+    
+    // Insert user data into users table
+    if (data.user) {
+      const { error: insertError } = await supabase
+        .from('users')
+        .insert({
+          id: data.user.id,
+          firstname: formData.value.firstname,
+          lastname: formData.value.lastname,
+          email: formData.value.email,
+          facebook_link: formData.value.facebook_link,
+          profile_pic: formData.value.profile_pic
+        })
+      
+      if (insertError) {
+        console.error('Error inserting user profile:', insertError)
+        // Don't fail the signup just because profile insert failed
+      }
+    }
+    
     formAction.value.formSuccessMessage = 'Successfully Registered'
     formAction.value.formSuccessMessage = 'Please Verify your Email to Login'
 
