@@ -54,21 +54,10 @@ const fetchConversations = async () => {
   
   loading.value = true
   
-  // Fetch all messages for the current user
+  // Use the function that joins users and posts data
   const { data, error } = await supabase
-    .from('messages')
-    .select(`
-      id,
-      sender_id,
-      receiver_id,
-      post_id,
-      message,
-      is_read,
-      created_at
-    `)
-    .or(`sender_id.eq.${currentUserId.value},receiver_id.eq.${currentUserId.value}`)
-    .order('created_at', { ascending: false })
-
+    .rpc('get_messages_with_info')
+  
   if (error) {
     console.error('Error fetching conversations:', error)
     loading.value = false
@@ -77,125 +66,31 @@ const fetchConversations = async () => {
 
   // Group messages by conversation partner and post
   const convMap = new Map()
-  const partnerIds = new Set()
-  const postIds = new Set()
   
-  // First pass: collect all unique partner IDs and post IDs
+  // Process messages
   for (const msg of data || []) {
-    const partnerId = msg.sender_id === currentUserId.value ? msg.receiver_id : msg.sender_id
-    partnerIds.add(partnerId)
-    postIds.add(msg.post_id)
-  }
-  
-  // Fetch all partner user info in one query
-  const userMap = new Map()
-  if (partnerIds.size > 0) {
-    console.log('Fetching data for partner IDs:', Array.from(partnerIds))
-    const { data: usersData, error: usersError } = await supabase
-      .from('users')
-      .select('id, firstname, lastname, profile_pic')
-      .in('id', Array.from(partnerIds))
+    // Determine if current user is sender or receiver
+    const isSender = msg.sender_id === currentUserId.value
+    const partnerId = isSender ? msg.receiver_id : msg.sender_id
+    const partnerFirstname = isSender ? msg.receiver_firstname : msg.sender_firstname
+    const partnerLastname = isSender ? msg.receiver_lastname : msg.sender_lastname
+    const partnerProfilePic = isSender ? msg.receiver_profile_pic : msg.sender_profile_pic
     
-    if (usersError) {
-      console.error('Error fetching users from users table:', usersError)
-    } else if (usersData) {
-      console.log('Fetched users data:', usersData)
-      for (const user of usersData) {
-        userMap.set(user.id, user)
-      }
-    } else {
-      console.warn('No users data returned')
-    }
-    
-    // For missing users, try to get from auth user metadata in messages
-    const missingIds = Array.from(partnerIds).filter(id => !userMap.has(id))
-    if (missingIds.length > 0) {
-      console.warn('Missing users in users table:', missingIds)
-      // Get message from the missing users to extract their data if available
-      for (const misserId of missingIds) {
-        const partnerMessage = data.find(msg => msg.sender_id === misserId || msg.receiver_id === misserId)
-        if (partnerMessage) {
-          // Try to create a basic entry - in production, you'd want to get this from auth metadata
-          userMap.set(misserId, {
-            id: misserId,
-            firstname: 'User',
-            lastname: '',
-            profile_pic: null
-          })
-        }
-      }
-    }
-    
-    // Final fallback: add any still-missing users as placeholder
-    for (const id of partnerIds) {
-      if (!userMap.has(id)) {
-        console.warn('Using placeholder for user:', id)
-        userMap.set(id, { id, firstname: 'User', lastname: '' })
-      }
-    }
-  }
-  
-  // Fetch all posts info in one query
-  const postsMap = new Map()
-  if (postIds.size > 0) {
-    const { data: postsData, error: postsError } = await supabase
-      .from('posts')
-      .select('post_id, item_name')
-      .in('post_id', Array.from(postIds))
-    
-    if (postsError) {
-      console.error('Error fetching posts:', postsError)
-      console.log('Post IDs being queried:', Array.from(postIds))
-    } else if (postsData) {
-      console.log('Fetched posts data:', postsData)
-      for (const post of postsData) {
-        postsMap.set(post.post_id, post)
-      }
-    } else {
-      console.warn('No posts data returned')
-    }
-    
-    // Add any missing post IDs with placeholder data
-    for (const id of postIds) {
-      if (!postsMap.has(id)) {
-        console.warn('Missing post data for post_id:', id)
-        postsMap.set(id, { post_id: id, item_name: 'Unknown Item' })
-      }
-    }
-  }
-  
-  // Second pass: build conversations
-  for (const msg of data || []) {
-    const partnerId = msg.sender_id === currentUserId.value ? msg.receiver_id : msg.sender_id
     const key = `${partnerId}-${msg.post_id}`
     
     if (!convMap.has(key)) {
-      // Get partner's user info
-      const partnerInfo = userMap.get(partnerId)
-      
-      // Get post info
-      const postInfo = postsMap.get(msg.post_id)
-      
-      // Get partner's name and avatar
+      // Build partner name
       let partnerName = 'Unknown User'
-      if (partnerInfo) {
-        if (partnerInfo.firstname && partnerInfo.lastname) {
-          partnerName = `${partnerInfo.firstname} ${partnerInfo.lastname}`.trim()
-        } else if (partnerInfo.firstname) {
-          partnerName = partnerInfo.firstname
-        } else if (partnerInfo.lastname) {
-          partnerName = partnerInfo.lastname
-        }
+      if (partnerFirstname || partnerLastname) {
+        partnerName = `${partnerFirstname || ''} ${partnerLastname || ''}`.trim()
       }
-      
-      const partnerAvatar = partnerInfo?.profile_pic
       
       convMap.set(key, {
         partnerId,
         postId: msg.post_id,
         partnerName,
-        partnerAvatar,
-        postTitle: postInfo?.item_name || 'Unknown Item',
+        partnerAvatar: partnerProfilePic,
+        postTitle: msg.item_name || 'Unknown Item',
         lastMessage: msg.message,
         lastMessageTime: msg.created_at,
         unreadCount: 0
@@ -205,7 +100,7 @@ const fetchConversations = async () => {
     // Count unread messages
     if (msg.receiver_id === currentUserId.value && !msg.is_read) {
       const conv = convMap.get(key)
-      conv.unreadCount++
+      if (conv) conv.unreadCount++
     }
   }
   
