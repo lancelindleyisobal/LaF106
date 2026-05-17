@@ -298,7 +298,7 @@ const uploadImage = async (file) => {
           <!-- Post Image -->
           <div class="post-image-container" v-if="post.image">
             <v-img
-              :src="`https://ndmbunubneumkuadlylz.supabase.co/storage/v1/object/public/items/${post.image}`"
+              :src="`https://tfjzrhmfliimxgnrevyp.supabase.co/storage/v1/object/public/items/${post.image}`"
               contain
               :alt="post.item_name || 'Post Image'"
             />
