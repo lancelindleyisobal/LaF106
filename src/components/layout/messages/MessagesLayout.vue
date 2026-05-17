@@ -31,25 +31,7 @@ const fetchConversations = async () => {
   
   loading.value = true
   
-  // First, fetch all posts with user info to get user details
-  const { data: allPosts } = await supabase.rpc('get_posts_with_user_info')
-  
-  // Create a map of userId to user info
-  const userMap = new Map()
-  if (allPosts) {
-    for (const post of allPosts) {
-      if (!userMap.has(post.user_id)) {
-        userMap.set(post.user_id, {
-          firstname: post.firstname,
-          lastname: post.lastname,
-          full_name: post.full_name,
-          profile_pic: post.profile_pic,
-          avatar_url: post.avatar_url
-        })
-      }
-    }
-  }
-  
+  // Fetch all messages for the current user
   const { data, error } = await supabase
     .from('messages')
     .select(`
@@ -72,17 +54,57 @@ const fetchConversations = async () => {
 
   // Group messages by conversation partner and post
   const convMap = new Map()
+  const partnerIds = new Set()
+  const postIds = new Set()
   
+  // First pass: collect all unique partner IDs and post IDs
+  for (const msg of data || []) {
+    const partnerId = msg.sender_id === currentUserId.value ? msg.receiver_id : msg.sender_id
+    partnerIds.add(partnerId)
+    postIds.add(msg.post_id)
+  }
+  
+  // Fetch all partner user info in one query
+  const userMap = new Map()
+  if (partnerIds.size > 0) {
+    const { data: usersData } = await supabase
+      .from('users')
+      .select('id, firstname, lastname, full_name, profile_pic, avatar_url')
+      .in('id', Array.from(partnerIds))
+    
+    if (usersData) {
+      for (const user of usersData) {
+        userMap.set(user.id, user)
+      }
+    }
+  }
+  
+  // Fetch all posts info in one query
+  const postsMap = new Map()
+  if (postIds.size > 0) {
+    const { data: postsData } = await supabase
+      .from('posts')
+      .select('post_id, item_name')
+      .in('post_id', Array.from(postIds))
+    
+    if (postsData) {
+      for (const post of postsData) {
+        postsMap.set(post.post_id, post)
+      }
+    }
+  }
+  
+  // Second pass: build conversations
   for (const msg of data || []) {
     const partnerId = msg.sender_id === currentUserId.value ? msg.receiver_id : msg.sender_id
     const key = `${partnerId}-${msg.post_id}`
     
     if (!convMap.has(key)) {
-      // Get partner's user info from userMap
+      // Get partner's user info
       const partnerInfo = userMap.get(partnerId)
       
-      // Fetch post info
-      const postInfo = allPosts?.find(p => p.post_id === msg.post_id)
+      // Get post info
+      const postInfo = postsMap.get(msg.post_id)
       
       // Get partner's name and avatar
       const partnerName = partnerInfo?.firstname && partnerInfo?.lastname
